@@ -13,6 +13,8 @@ from collections import defaultdict
 
 # local
 import sink
+import graphite_sink
+import load_sink
 from core import __version__
 
 # vendor
@@ -93,7 +95,7 @@ class StatsDaemon(object):
     A statsd service implementation in Python + gevent.
     """
 
-    def __init__(self, bindaddr, sinkspecs, interval, percent, debug=0):
+    def __init__(self, bindaddr, sinktype, sinkspecs, interval, percent, debug=0):
         _, host, port = parse_addr(bindaddr)
         if port is None:
             self.exit(E_BADADDR % bindaddr)
@@ -106,7 +108,15 @@ class StatsDaemon(object):
         # construct the sink and add hosts to it
         if not sinkspecs:
             self.exit(E_NOSINKS)
-        self._sink = sink.GraphiteSink()
+ 
+        if sinktype == 'graphite':
+           self._sink = graphite_sink.GraphiteSink()
+        elif sinktype == 'load':
+           interval = 1 # set interval to 1 sec for internal integration
+           self._sink = load_sink.LoadSink()
+        else:
+           raise ValueError('Invalid sink type : %s' % sinktype)
+   
         errors = []
         for spec in sinkspecs:
             try:
@@ -213,6 +223,8 @@ def main():
         add_help_option=False)
     opts.add_option('-b', '--bind', dest='bind_addr', default=':8125', 
         help="bind [host]:port (host defaults to '')")
+    opts.add_option('-t', '--type', dest='sink_type', default='graphite', 
+        help="sink type graphite, load (default graphite)")
     opts.add_option('-s', '--sink', dest='sink', action='append', default=[],
         help="a graphite service to which stats are sent ([host]:port).")
     opts.add_option('-v', dest='verbose', action='count', default=0,
@@ -236,11 +248,13 @@ def main():
     if options.daemonize:
         daemonize()
 
-    sd = StatsDaemon(options.bind_addr, options.sink, options.interval,
+    sd = StatsDaemon(options.bind_addr, options.sink_type, options.sink, options.interval,
         options.percent, options.verbose)
     sd.start()
  
 
 if __name__ == '__main__':
+    import setproctitle
+    setproctitle.setproctitle('gstatsd')
     main()
 
