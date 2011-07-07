@@ -33,6 +33,8 @@ Options:
                             bind [host]:port (host defaults to '')
       -s SINK, --sink=SINK  a graphite service to which stats are sent
                             ([host]:port).
+      -t SINK_TYPE, --type=SINK_TYPE
+                            sink type graphite, load (default graphite)
       -v                    increase verbosity (currently used for debugging)
       -f INTERVAL, --flush=INTERVAL
                             flush interval, in seconds (default 10)
@@ -55,6 +57,23 @@ To send the stats to multiple graphite servers, specify '-s' multiple times:
 
     % gstatsd -b :8125 -s stats1:2003 -s stats2:2004
 
+You can also use a sink type different than graphite. Right now the other
+supported option is a custom internal aggregator(load), that can be queried
+via HTTP for aggregated stats over a period of time. It is SNMP friendly 
+and can be used by a stateless SNMP script that can extract and emit OIDs over
+a period of time. It can also be used to report load-style stats - that is 
+report ( 1 min, 5 min, 15 min ) stat aggregates. 
+
+    % gstatsd -b :8125 -s localhost:8082 -t load
+
+Request aggregate stats over period of time :
+
+    % curl "http://localhost:8082/1"   # last 1 minute
+    % curl "http://localhost:8082/5"   # last 5 minutes
+    % curl "http://localhost:8082/15"  # last 15 minutes
+
+    % curl "http://localhost:8082/1/full" # last full frame ( complete 60 sec of data)
+      
 
 Using the client
 ----------------
