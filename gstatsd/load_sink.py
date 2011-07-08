@@ -1,6 +1,7 @@
 import sys
 import time
 import collections
+import json
 
 import SocketServer
 import BaseHTTPServer
@@ -186,7 +187,7 @@ class ReportStatRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(self.server.sink.aggregate.collect(frames, full_only))
+            self.wfile.write(json.dumps(self.server.sink.aggregate.collect(frames, full_only)))
 
 class ReportStatThread(threading.Thread):
     def __init__(self, port):
@@ -261,4 +262,3 @@ class LoadSink(Sink):
             self.aggregate.stat('Stat',**{'%s' % (key): val})
             num_stats += 1
 
-        print self.aggregate.collect(1)
